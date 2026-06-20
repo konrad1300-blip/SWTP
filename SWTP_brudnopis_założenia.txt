@@ -1,0 +1,99 @@
+﻿System Wycen Technologii i Planowania
+
+Generuj kod źródłowy z obszernymi komentarzami w języku polskim.
+Celem jest stworzenie aplikacji docelowo do umieszczenia na serwerze lokalnym firmy i do wykorzystania w formowej sieci LAN. Aplikacja ma wspomagać system wycen produktów, konstruowania technologii i sposobu planowania produkcji. Aplikacja działa na podstawie następujących po sobie kroków, niektóre z kroków będą wymagały zagłębienia się w szczegóły w takim przypadku idealnie od strony interfejsu byłoby wprowadzenie kard. Początkowo przewiduje dla aplikacji bazę danych SQLite być może z możliwością późniejszej zmiany na bardziej zaawansowaną bazę danych. Do aplikacji trzeba się będzie zalogować w celu ustalenia tożsamości użytkownika. Chciałbym by plik pythona był jeden albo maksymalnie 3 nie chcę rozdrabniać projektu na kilkadziesiąt plików.
+
+1. Harmonogram.
+Pierwszym etapem jest stworzenie harmonogramu. Do firmy przychodzą zapytania od klientów i zamówienia. Przychodzą one do działu ORDERS albo z centrali w Danii i ten dział tworzy listę zadań. Na podstawie tej listy planista tworzy harmonogram ustawiając listę w kolejkę. Planista bierze pod uwagę terminy realizacji.
+2. Lista zadań.
+Lista zadań to uporządkowana lista w której skład wchodzą zamówienia zgodnie z ustaleniami w poprzednim kroku czyli harmonogramie.
+3. Wycena.
+ Wycena polega na:
+- nadanie numeru produktu (xxx-xxxx-xxx) – nadanie numeru wiąże się z (nadaniem tożsamości produktowi) i wygenerowaniu karty produktu.
+- Przygotowanie rysunku przez konstruktorów. Konstruktor musi oprócz plików modelu przygotować plik kroju na 1 sztukę wyrobu i umieścić go w katalogu IA, przygotować listę metrów szycia, metrów zgrzewania, długości użytych pasów i ich ilość, i wszelkich możliwych informacji które można wyciągnąć z gotowego rysunku.
+- Wykonanie BOM
+- Przyporządkowanie procesów produkcyjnych do konkretnych maszyn, W przypadku prac ręcznych do ludzi bądź grup ludzi. Tabela z listą maszyn, do każdej maszyny lista możliwych do wykonania procesów, do każdego procesu czas standardowy czas wykonania wykonania tego procesu (możliwość korekty czasu standardowego ze względy na przykład na wielki gabaryt produktu). Każda maszyna ma określony koszt pracy jednej godziny procesu
+- Obliczenie sumaryczne: koszty materiału (BOM) + robocizna(suma czasu na maszynach pomnożona przez koszt procesu).
+
+Lista maszyn znajduje się w katalogu data w pliku Maszyny.xlsx, a lista towarów znajduje się w katalogu data w pliku Towary.xlsx. Jeśli to możliwe (ALE NIE KONIECZNE) można pliki rozjeżyć o ilustracje. Oba te pliki powinny być wczytane do bazy danych a przy sporządzaniu wycen można by wybrać odpowiednie wiersze przez wskazanie. Musi być też możliwość edycji cen w towarach a w maszynach możliwość dokładania do maszyn procesów które ta maszyna może wykonać z kosztem danego procesu w przeliczeniu na godzinę.
+
+Jeżeli zapytanie z harmonogramu dotyczyło jedynie wyceny tutaj zadanie się kończy
+
+4. Technologia.
+
+Ten etap ma być miejscem korelacji programu z programem ERP w firmie.
+Technologia to  złożenie wszystkich procesów w listę gdzie z listy procesów wyceny poszczególne elementy będą dodawane do pozycji łącznie z czasami ich wykonania. Lista procesów technologicznych: Krojenie, Nadruk, Elementy, Szycie, Zgrzewanie HF mały, Zgrzewanie HF duży, Zgrzewanie SEAMTEC, Zgrzewanie gorące powietrze, Okucia, Kontrola, Pakowanie. Każdy proces w wycenie musi być przyporządkowany do jednego z procesów na liście technologi a czas dodany do tego procesy na technologi. Do tego potrzebujemy listę materiałów do produktu BOM razem i ilościami. Bom musi mieć możliwość edycji z tego miejsca również.
+
+
+5. Dokumentacja.
+
+Ponieważ w poprzednich krokach uzyskaliśmy listę maszyn i procesów przyporządkowanych do tych maszyn możemy w tym miejscu stworzyć dokumentację „Krok po kroku” dla działu produkcji. „Krok po kroku” – to chorologiczna lista procesów następujących po sobie by w efekcie ukończenia ostatniego z nich otrzymać jedną sztukę wyprodukowanego wyrobu. Powinna być możliwość dodania do listy zdjęć ilustrujących dany proces lub zwracających uwagę na szczególny charakter wykonania
+
+6. Plan produkcji.
+Mając już wycenę, technologię i ilość zamówionych produktów z harmonogramu Tworzymy na tej podstawie graficzny klocek o długości takiej jaka wychodzi z obliczonego czasu. Tworzymy wykres gantta i nadajemy mu wszystkie funkcjonalności potrzebę w zaplanowaniu produkcji. Jeśli można to chciałbym by najeżdżając na klocek mieć w chmurce jakie to zlecenie i terminy i ogólną charakterystykę jak na karcie produktu. Planista ma do wykorzystania dwie daty: pierwszy możliwy termin realizacji – to jest kiedy ma wolny zasób produkcyjny i potwierdzenie terminów dostawy materiałów do magazynu, drugi to ostatnia możliwa data kiedy uwzględniając czas produkcji zdąży się z realizacją zamówienia klienta w terminie. W tych widełkach powinien umieścić klocek ze zleceniem. Dwa razy na dobę następuje tak zwany zrzut planu (może też występować na żądanie) który generuje listę zadań dla poszczególnych maszyn. Na liście znajdują się zlecenia produkcyjne które operator musi wykonać jedno po drugim.
+
+Tutaj podaje przykład jak powinien wyglądać przykładowy proces.
+
+Świetnie, zmieniamy scenografię z mebli na plandeki do przyczepek. To świetny przykład, bo masz tu do czynienia z różnymi operacjami (cięcie, zgrzewanie, dziurkowanie, wszywanie pasów) i jednym kluczowym, wolnym "wąskim gardłem" – zgrzewarką wysokiej częstotliwości (to ona sprawia, że plandeka jest wodoodporna, ale pracuje najwolniej).
+Wyobraźmy sobie firmę "Plandeki-Trans". Mamy jedną maszynę do cięcia (szybką), jedną zgrzewarkę (wolną), jedną praskę do oczek (metalowych pierścieni) i stanowisko do pakowania.
+Oto nasze zamówienia na dziś (praca od 8:00 do 16:00):
+    • Zamówienie A: 2 duże plandeki na przyczepkę ciężarową (rozmiar L). Termin ważny: 12:00 (klient przyjeżdża po nie w południe!).
+    • Zamówienie B: 10 małych plandek na przyczepkę samochodową (rozmiar S). Termin: 16:00 (koniec dnia).
+Czasy operacji (dla jednej sztuki):
+Operacja \ Rozmiar	Mała (S)	Duża (L)
+Cięcie (maszyna CNC)	10 min	30 min
+Zgrzewanie (wąskie gardło!)	20 min	30 min
+Dziurkowanie oczek (praska)	10 min	15 min
+Pakowanie / kontrola	5 min	10 min
+
+
+Krok 1: System "zjada" dane i wyczuwa problem
+APS łączy się z ERP i widzi: 2 duże do 12:00 i 10 małych do 16:00. System natychmiast sprawdza "Kto jest najwolniejszy?" – Zgrzewarka. Gdybyś wykonał zlecenia po kolei (najpierw duże, potem małe), zgrzewarka pracowałaby tak: 2 duże (2 x 30 min = 60 min) + 10 małych (10 x 20 min = 200 min) = 260 minut (4 godziny i 20 minut). Fizycznie byś zdążył, ale... klient duży jest na 12:00! APS wie, że duże plandeki potrzebują cięcia (30 min), zgrzewu (30 min) i dziurkowania (15 min) = 75 minut na sztukę. Jeśli zaczniesz je robić dopiero o 10:00, to nie zdążysz. APS musi ułożyć układankę w czasie.
+
+Krok 2: Planowanie "od tyłu" (od terminu)
+APS nie pyta "Co zrobię najpierw?", tylko "Kiedy MUSZĘ zacząć, żeby zdążyć?".
+Liczymy od 12:00 dla dużych plandek:
+    • Aby zdążyć z pakowaniem do 12:00, dziurkowanie musi skończyć się do 11:50 (bo pakowanie to 10 min).
+    • Aby zdążyć z dziurkowaniem do 11:50, zgrzewanie musi skończyć się do 11:35 (bo dziurkowanie 2 sztuk to 2 x 15 min = 30 min; 11:50 - 30 min = 11:20? Zaraz, poprawka: 2 sztuki L to 30 min zgrzewu każda = 60 min. Dziurkowanie 2 sztuk L to 30 min. Pakowanie 2 sztuk L to 20 min. Razem 110 min. 12:00 - 20 min (pakowanie) = 11:40. 11:40 - 30 min (dziurkowanie) = 11:10. 11:10 - 60 min (zgrzew) = 10:10. Zatem zgrzewarka MUSI zacząć grzać duże plandeki najpóźniej o 10:10, żeby zdążyć).
+    • Cięcie dużych (2 x 30 min = 60 min) musi zacząć się o 9:10, żeby dostarczyć materiał na zgrzewarkę o 10:10.
+
+Krok 3: Logika "wypełniania pustej przestrzeni"
+APS mówi: "Skoro zgrzewarka musi być wolna o 10:10 na duże plandeki, to co ma robić od 8:00 do 10:10?" Ma wolne 2 godziny i 10 minut (130 minut). Małe plandeki potrzebują 20 minut na zgrzewie. APS oblicza: 130 minut / 20 min = 6,5. Czyli w tym czasie zgrzewarka zdąży zrobić 6 małych plandek (zostanie 10 minut luzu na ewentualne opóźnienia).
+Teraz APS myśli dalej: "Skoro o 10:10 wrzucam duże na zgrzewarkę, to co w tym czasie robi cięcie?" Cięcie tnie duże od 9:10 do 10:10. Ale od 8:00 do 9:10 ma wolne 70 minut. W tym czasie może pociąć małe plandeki (10 min x 7 sztuk = 70 min). Dzięki temu zgrzewarka ma materiał na te 6 małych sztuk od razu o 8:00.
+
+Krok 4: Konkretny harmonogram (minuta po minucie) z APS
+Godzina	Maszyna do cięcia (Krajarka)	Zgrzewarka (wąskie gardło)	Dziurkowanie + Pakowanie
+8:00 - 9:10	Tnie 7 małych plandek (jedna po drugiej).	Zgrzewa 6 małych (od 8:00 do 10:00).	(Czekają, bo najpierw muszą przejść przez zgrzewarkę).
+9:10 - 10:10	Tnie 2 duże plandeki (musi zdążyć na 10:10!).	Kończy 6-tą małą o 10:00, ma 10 min przerwy/regulacji na zmianę rozmiaru.	Dziurkuje i pakuje pierwsze 4 małe (szybko nadrabiają).
+10:10 - 12:00	Tnie pozostałe 3 małe (od 10:10 do 10:40) i potem ma luz.	Zgrzewa 2 duże (30 min + 30 min = 60 min). Kończy dokładnie o 11:10.	Dziurkuje i pakuje 2 duże (od 11:10 do 11:30). Gotowe do 12:00!
+12:00 - 14:40	Luz / dorabia zapasy.	Zgrzewa pozostałe 4 małe (4 x 20 min = 80 min, czyli do 14:00).	Dziurkuje i pakuje pozostałe małe (6 sztuk) – ma na to mnóstwo czasu.
+14:00 - 16:00	Koniec.	Koniec.	Spokojnie kończy pakowanie wszystkich małych. Gotowe do 16:00!
+
+Widzisz, co się stało? APS wypełnił czas martwy zgrzewarki małymi plandekami, ale w porę przerzucił cięcie na duże, żeby zdążyć na termin. Dzięki temu zgrzewarka nie stała ani chwili, a klient dostał duże na 12:00!
+
+Krok 5: Symulacja "Co jeśli" (Awaria)
+Załóżmy, że o 9:30 zgrzewarka się przegrzewa i musi stygnąć 20 minut. W systemie ERP czy na kartce byś zwariował. W APS:
+    • Wpisujesz: "Postój zgrzewarki 9:30 - 9:50".
+    • APS w 5 sekund przerabia plan od nowa i mówi: "Mamy problem. Przez ten postój zgrzewarka skończy 6-tą małą plandekę dopiero o 10:20. Duże plandeki wejdą na zgrzewarkę o 10:20, a nie o 10:10. Oznacza to, że skończą się o 12:10 (10 minut po terminie)."
+    • System od razu podpowiada dwa rozwiązania (scenariusze):
+        1. Nadgodziny: Każemy zgrzewarce zostać 10 minut dłużej po 16:00, ale duże będą o 12:10. Dzwonimy do klienta, że opóźnienie 10 minut.
+        2. Zmiana priorytetu: Przerywamy zgrzewanie małych i od razu po przerwie (9:50) wrzucamy duże. Wtedy duże zdążą na 12:00, ale małe skończą się dopiero o 16:20 (spóźnione).
+Menedżer wybiera opcję 1 (bo klient na duże jest ważniejszy i jedzie w trasę), a APS automatycznie koryguje grafik dla reszty dnia.
+
+🧠 Podsumowanie logiki APS na tym przykładzie:
+    1. Identyfikuje wąskie gardło (Zgrzewarka) i podporządkowuje mu cały plan.
+    2. Liczy od tyłu (od godziny 12:00 i 16:00), żeby ustalić absolutne deadliny dla każdej maszyny.
+    3. Wypełnia luki czasowe (między 8:00 a 10:10) mniej pilnymi zleceniami (małymi plandekami), ale zawsze z zapasem bezpieczeństwa.
+    4. Nie myśli "co zrobię jutro", tylko "co zrobię o 9:47" – rozbija pracę na konkretne minuty, eliminując chaos i kolejki.
+Dzięki APS w firmie produkującej plandeki nie ma sytuacji, że zgrzewarka stoi, a ludzie biegają z pytaniem "co teraz?". System mówi im to co do minuty, a gdy coś pójdzie nie tak – od razu podaje plan B. Sztuczna inteligencja w nowoczesnych APS potrafi nawet przewidzieć, że zgrzewarka zazwyczaj pada o 9:30 po nocnej zmianie i sama przesuwa ciężkie zlecenia na popołudnie!
+Czy chciałbyś, żebym pokazał, jak system radzi sobie z sytuacją, gdy klient zamawia plandekę na wymiar (produkcja jednostkowa, a nie seryjna)? Bo to zmienia całą logikę!
+
+
+
+7. Realizacja.
+
+Na podstawie listy wygenerowanej podczas zrzutu planu, produkcja przystępuje do realizacji zadań każdy z wykonywanych procesów musi być raportowany odbiciami w systemie czasu rzeczywistego
+
+8. Raport walidacji czasów.
+
+Na podstawie realnych czasów zebranych z produkcji możemy dokonać walidacji czasów standardowych na procesy przypisane do maszyn.
