@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 scheduler.py - Silnik planowania APS (Advanced Planning and Scheduling) dla systemu SWTP.
-Zawiera algorytm szeregowania wstecznego (Backward Scheduling),
-obsługę kalendarza czasu pracy (8:00-16:00, bez weekendów),
+ Zawiera algorytm szeregowania wstecznego (Backward Scheduling),
+ obsługę kalendarza czasu pracy (6:00-14:00 i 14:00-22:00, bez weekendów),
 analizę wąskich gardeł, symulację awarii maszyn oraz wizualizację Gantta przez Plotly.
 Wszystkie komentarze i nazwy interfejsów są w języku polskim.
 """
@@ -13,65 +13,91 @@ import plotly.express as px
 import database
 
 # Definicje czasu pracy firmy
-POCZATEK_PRACY = time(8, 0, 0)
-KONIEC_PRACY = time(16, 0, 0)
-DLUGOST_DNIOWKI_H = 8.0
+POCZATEK_PRACY = time(6, 0, 0)
+SREDNIA_PRACY = time(14, 0, 0)
+KONIEC_PRACY = time(22, 0, 0)
+DLUGOSC_DNIOWKI_H = 16.0
+POCZATEK_PRACY_F = float(POCZATEK_PRACY.hour) + POCZATEK_PRACY.minute / 60.0
+SREDNIA_PRACY_F = float(SREDNIA_PRACY.hour) + SREDNIA_PRACY.minute / 60.0
+KONIEC_PRACY_F = float(KONIEC_PRACY.hour) + KONIEC_PRACY.minute / 60.0
 
 def czy_dzien_roboczy(dt):
     """Sprawdza, czy dzień jest dniem roboczym (poniedziałek - piątek)."""
     return dt.weekday() < 5
 
+def _czas_w_godzinach_roboczych(dt):
+    return dt.hour + dt.minute / 60.0 + dt.second / 3600.0
+
+
 def przesun_czas_roboczy(start_dt, godziny, wstecz=False):
     """
-    Przesuwa czas o podaną liczbę godzin roboczych (8:00-16:00, omijając weekendy).
-    wstecz: jeśli True, planuje czas w tył (dla szeregowania wstecznego).
+    Przesuwa czas o podaną liczbę godzin roboczych (6:00-22:00, omijając weekendy) metodą analityczną.
+    Dwie zmiany: I (6:00-14:00) i II (14:00-22:00).
+    wstecz: jeśli True, planuje czas w tył.
     """
-    obecny_dt = start_dt
-    pozostalo_godzin = float(godziny)
-    krok = timedelta(minutes=15)
-    krok_godziny = 0.25
+    pozostalo = float(godziny)
+    if pozostalo <= 0:
+        return start_dt
     
-    while pozostalo_godzin > 0:
+    dt = start_dt
+    
+    # Handle non-working days first - move to next/prev boundary of a working day
+    while not czy_dzien_roboczy(dt):
         if wstecz:
-            obecny_dt -= krok
+            dt = datetime.combine(dt.date(), KONIEC_PRACY)
+            while not czy_dzien_roboczy(dt):
+                dt = datetime.combine(dt.date() - timedelta(days=1), KONIEC_PRACY)
         else:
-            obecny_dt += krok
-            
-        # Omijanie weekendów
-        while not czy_dzien_roboczy(obecny_dt):
-            if wstecz:
-                # Jeśli weekend i idziemy wstecz, przeskakujemy na piątek godz. 16:00
-                obecny_dt = datetime.combine(obecny_dt.date() - timedelta(days=1), KONIEC_PRACY)
-            else:
-                # Jeśli weekend i idziemy w przód, przeskakujemy na poniedziałek godz. 8:00
-                obecny_dt = datetime.combine(obecny_dt.date() + timedelta(days=1), POCZATEK_PRACY)
-                
-        # Sprawdzanie godzin pracy
-        cz_dnia = obecny_dt.time()
-        if cz_dnia < POCZATEK_PRACY:
-            if wstecz:
-                # Przeskakujemy na poprzedni dzień roboczy na koniec pracy
-                poprzedni_dzien = obecny_dt.date() - timedelta(days=1)
-                obecny_dt = datetime.combine(poprzedni_dzien, KONIEC_PRACY)
-                while not czy_dzien_roboczy(obecny_dt):
-                    obecny_dt = datetime.combine(obecny_dt.date() - timedelta(days=1), KONIEC_PRACY)
-            else:
-                # Przeskakujemy na 8:00 dzisiejszego dnia
-                obecny_dt = datetime.combine(obecny_dt.date(), POCZATEK_PRACY)
-        elif cz_dnia > KONIEC_PRACY:
-            if wstecz:
-                # Przeskakujemy na 16:00 dzisiejszego dnia
-                obecny_dt = datetime.combine(obecny_dt.date(), KONIEC_PRACY)
-            else:
-                # Przeskakujemy na kolejny dzień roboczy na 8:00
-                kolejny_dzien = obecny_dt.date() + timedelta(days=1)
-                obecny_dt = datetime.combine(kolejny_dzien, POCZATEK_PRACY)
-                while not czy_dzien_roboczy(obecny_dt):
-                    obecny_dt = datetime.combine(obecny_dt.date() + timedelta(days=1), POCZATEK_PRACY)
-                    
-        pozostalo_godzin -= krok_godziny
+            dt = datetime.combine(dt.date(), POCZATEK_PRACY)
+            while not czy_dzien_roboczy(dt):
+                dt = datetime.combine(dt.date() + timedelta(days=1), POCZATEK_PRACY)
+    
+    while True:
+        godzina = _czas_w_godzinach_roboczych(dt)
         
-    return obecny_dt
+        if wstecz:
+            if godzina > KONIEC_PRACY_F:
+                godzina = KONIEC_PRACY_F
+                dt = dt.replace(hour=KONIEC_PRACY.hour, minute=KONIEC_PRACY.minute, second=0, microsecond=0)
+            elif godzina < POCZATEK_PRACY_F:
+                godzina = POCZATEK_PRACY_F
+                dt = dt.replace(hour=POCZATEK_PRACY.hour, minute=POCZATEK_PRACY.minute, second=0, microsecond=0)
+            available = godzina - POCZATEK_PRACY_F
+        else:
+            if godzina < POCZATEK_PRACY_F:
+                godzina = POCZATEK_PRACY_F
+                dt = dt.replace(hour=POCZATEK_PRACY.hour, minute=POCZATEK_PRACY.minute, second=0, microsecond=0)
+            elif godzina > KONIEC_PRACY_F:
+                godzina = KONIEC_PRACY_F
+                dt = dt.replace(hour=KONIEC_PRACY.hour, minute=KONIEC_PRACY.minute, second=0, microsecond=0)
+            available = KONIEC_PRACY_F - godzina
+        
+        pojn_okna = 16.0
+        
+        if pozostalo <= available:
+            if wstecz:
+                nowa_godz = godzina - pozostalo
+            else:
+                nowa_godz = godzina + pozostalo
+            h = int(nowa_godz)
+            m = int(round((nowa_godz - h) * 60))
+            if m >= 60:
+                h += 1
+                m = 0
+            dt = dt.replace(hour=h, minute=m, second=0, microsecond=0)
+            return dt
+        
+        # Consume available hours and move to next/prev working day
+        pozostalo -= available
+        if wstecz:
+            dt = datetime.combine(dt.date() - timedelta(days=1), KONIEC_PRACY)
+            while not czy_dzien_roboczy(dt):
+                dt = datetime.combine(dt.date() - timedelta(days=1), KONIEC_PRACY)
+        else:
+            dt = datetime.combine(dt.date() + timedelta(days=1), POCZATEK_PRACY)
+            while not czy_dzien_roboczy(dt):
+                dt = datetime.combine(dt.date() + timedelta(days=1), POCZATEK_PRACY)
+
 
 def oblicz_czas_procesu(ilosc, czas_std, korekta_gabaryt):
     """Oblicza sumaryczny czas dla danej operacji (ilość sztuk * czas_std * korekta)."""
@@ -164,7 +190,7 @@ def generuj_harmonogram_aps(wstrzymane_maszyny=None):
         kod_prod = zam['kod_produktu']
         ilosc = zam['ilosc']
         deadline_data = datetime.strptime(zam['termin'], '%Y-%m-%d')
-        # Ustawiamy termin ostateczny na godzinę 16:00 danego dnia
+        # Ustawiamy termin ostateczny na koniec pracy danego dnia (22:00)
         deadline_dt = datetime.combine(deadline_data.date(), KONIEC_PRACY)
         
         # Pobieramy procesy technologiczne produktu
@@ -273,7 +299,7 @@ def wizualizuj_harmonogram_gantt(zaplanowane_operacje):
     # Poprawa wyglądu wykresu
     fig.update_yaxes(categoryorder="category ascending")
     fig.update_layout(
-        xaxis_title="Oś czasu (Praca w godz. 8:00 - 16:00)",
+        xaxis_title="Oś czasu (Praca w godz. 6:00 - 14:00 lub 14:00 - 22:00)",
         hoverlabel=dict(bgcolor="white", font_size=12, font_family="Outfit"),
         legend_title="Zlecenia",
         title_font=dict(size=18, family="Outfit"),

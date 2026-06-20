@@ -193,7 +193,8 @@ def inicjalizuj_baze():
     domyslni_uzytkownicy = [
         ('admin', 'admin', 'Menedżer'),
         ('planista', 'planista', 'Planista'),
-        ('konstruktor', 'konstruktor', 'Konstruktor'),
+        ('technolog', 'technolog', 'Technolog'),
+        ('zamowienia', 'zamowienia', 'Zamówienia'),
         ('operator', 'operator', 'Operator')
     ]
     for login, haslo, rola in domyslni_uzytkownicy:

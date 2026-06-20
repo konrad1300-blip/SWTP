@@ -105,7 +105,7 @@ def ekran_logowania():
                 else:
                     st.error("Błędny login lub hasło.")
                     
-        st.info("Konta demonstracyjne:\n- admin / admin (Menedżer)\n- planista / planista (Planista)\n- konstruktor / konstruktor (Konstruktor)\n- operator / operator (Operator)")
+        st.info("Konta demonstracyjne:\n- admin / admin (Menedżer)\n- planista / planista (Planista)\n- technolog / technolog (Technolog)\n- zamowienia / zamowienia (Zamówienia)\n- operator / operator (Operator)")
 
 # --- PANEL BOCZNY (SIDEBAR) ---
 def panel_boczny():
@@ -875,7 +875,7 @@ def modul_zarzadzanie_uzytkownikami():
         with st.form("nowy_uzytkownik_form"):
             nowy_login = st.text_input("Login / Nazwa użytkownika")
             nowe_haslo = st.text_input("Hasło", type="password")
-            nowa_rola = st.selectbox("Rola w systemie", ["Planista", "Konstruktor", "Operator", "Menedżer"])
+            nowa_rola = st.selectbox("Rola w systemie", ["Planista", "Technolog", "Zamówienia", "Operator", "Menedżer"])
             
             submit_user = st.form_submit_button("Utwórz użytkownika")
             
